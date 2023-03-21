@@ -1,0 +1,148 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const download = require("download-git-repo");
+const program = require("commander");
+const chalk = require("chalk");
+const inquirerPrompt = require("../lib/prompt");
+const i18n = require("../i18n");
+const Logger = require("../lib/logger");
+
+const spanner = new Logger();
+
+/**
+ * 使用说明
+ * usage
+ */
+program.usage("[project-name]");
+
+/**
+ * 帮助指令
+ * --help
+ */
+program.on("--help", () => {
+  console.log(`
+${i18n.examples}
+
+  ${chalk.gray(i18n.eauInit.help[0])}
+  ${chalk.blue(i18n.eauInit.help[1])}
+
+  ${chalk.gray(i18n.eauInit.help[2])}
+  ${chalk.blue(i18n.eauInit.help[3])}
+  `);
+});
+
+/**
+ * 获取命令行输入
+ * Gets command
+ */
+program.action(async () => {
+  // 校验模板是否存在
+  // check the template exist or not
+  const templateList = require("../config/registry.json").templates;
+  if (!Array.isArray(templateList) || !templateList.length) {
+    spanner.fatal(i18n.eauInit.templates[0]);
+    spanner.blank();
+    spanner.info(i18n.eauInit.templates[1]);
+    console.log(
+      `[
+  {
+    "name": "xxx1",
+    "ssh": "git@xxxxx/xxxx.git",
+    "https": "https://xxxxx/xxxx.git"
+  },
+  {
+    "name": "xxx2",
+    "ssh": "git@xxxxx/xxxx.git",
+    "https": "https://xxxxx/xxxx.git"
+  },
+  ...
+]`
+    );
+    spanner.blank(2);
+    spanner.info(i18n.eauInit.templates[2] + chalk.yellow(" eau set templates <your templates file> ") + i18n.eauInit.templates[3]);
+    spanner.blank();
+    return;
+  }
+  // 获取参数目录名
+  // Gets the parameter directory name
+  const name = program.args[0];
+  // 项目名不符合条件
+  if (!new RegExp(/^[A-Za-z][A-Za-z0-9\-]+$/).test(name)) {
+    spanner.fatal(i18n.propmts.projectNameErr);
+    spanner.blank();
+    return;
+  }
+  // 执行命令行交互获取项目配置
+  // Execute a command line interaction to get the project configuration
+  const res = await inquirerPrompt(name);
+  spanner.blank();
+  if (res.isExist) {
+    // 如果目录已存在并且选择覆盖，删除原目录
+    // If the directory already exists and you choose to overwrite, delete the original directory
+    await delDir(res.projectName);
+    spanner.success(i18n.eauInit.delDir[0]);
+  }
+  // 下载模板
+  // Download template
+  await downloadTemplate(res);
+  spanner.stop();
+});
+
+/**
+ * 根据配置拉取模板
+ * Pull the template according to the configuration
+ * @param config 配置
+ */
+function downloadTemplate(config) {
+  spanner.loading(i18n.eauInit.onDownload);
+  return new Promise((resolve, reject) => {
+    const { projectName, template, useSSH } = config;
+    let link = useSSH ? template.ssh : template.https;
+    download("direct:" + link, projectName, { clone: true }, (err) => {
+      // 可能会报错 'git checkout' failed with status 1
+      // 原因是项目不存在master分支，其实是拉取成功的，忽略该报错
+      if (err && err.message !== "'git checkout' failed with status 1") {
+        spanner.fatal(i18n.eauInit.download[0]);
+        spanner.fatal(err);
+        return;
+      } else {
+        spanner.success(i18n.eauInit.download[1]);
+        spanner.blank(2);
+        spanner.info(i18n.eauInit.download[2] + chalk.yellow(" cd " + projectName + " ") + i18n.eauInit.download[3], "gray");
+        spanner.blank();
+        resolve();
+      }
+    });
+  });
+}
+
+/**
+ * 删除目录
+ * delete dir
+ * @param path 目录
+ */
+function delDir(pathname) {
+  spanner.loading(i18n.eauInit.onDelDir);
+  return new Promise((resolve, reject) => {
+    function del(path) {
+      let list = fs.readdirSync(path);
+      list.forEach((v, i) => {
+        let p = path + "/" + v;
+        let stats = fs.statSync(p);
+        if (stats.isFile()) {
+          fs.unlinkSync(p);
+        } else {
+          delDir(p);
+        }
+      });
+      fs.rmdirSync(path);
+    }
+    del(pathname);
+    if (!fs.readdirSync(".").includes(pathname)) {
+      resolve();
+    }
+  });
+}
+
+program.parse(process.argv);

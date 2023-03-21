@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+/**
+ * @author hyh
+ * @date 2023/3/14
+ * @description
+ * - 脚手架工作流程：
+ *     1.初始化指令
+ *     2.执行交互js
+ *     3.与用户交互获取参数
+ *     4.根据用户参数下载模板
+ *     5.模板下载
+ * - 模板下载方式：
+ *     1.放在本地-直接fs模块下载（不适用：脚手架目的是为了远程拉取模板）
+ *     2.放在服务器上-通过服务器地址下载（不适用：相比于个人服务器，git服务器更为通用和常规）
+ *     3.放在git上-用download-git-repo来下载
+ */
+
+const program = require("commander");
+const i18n = require("../i18n");
+
+program
+  // 版本号
+  .version(require("../package.json").version)
+  // 使用说明
+  .usage("<command> [options]")
+  // 命令说明
+  .command("init", i18n.eauCommandsDesc.init)
+  .command("set", i18n.eauCommandsDesc.set);
+
+program.parse(process.argv);

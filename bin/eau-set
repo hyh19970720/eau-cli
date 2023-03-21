@@ -1,0 +1,91 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const program = require("commander");
+const chalk = require("chalk");
+const i18n = require("../i18n");
+const Logger = require("../lib/logger");
+const { checkConfig } = require("../utils/common");
+
+const spanner = new Logger();
+
+/**
+ * 使用说明
+ * usage
+ */
+program.usage("<config-name> <config-value>");
+
+/**
+ * 帮助指令
+ * --help
+ */
+program.on("--help", () => {
+  console.log(`
+${i18n.examples}
+
+  ${chalk.gray(i18n.eauSet.help[0])}
+  ${chalk.blue(i18n.eauSet.help[1])}
+  `);
+});
+
+/**
+ * 获取命令行输入
+ * Gets command
+ * 校验参数和重写配置文件
+ * Verify parameters and rewrite configuration files
+ */
+program.action(() => {
+  // 获取参数
+  const args = program.args;
+  // 不存在参数，展示帮助指令
+  if (args.length < 1) return program.help();
+  // 只有一个参数
+  if (args.length < 2) {
+    spanner.fatal(i18n.eauSet.noValue);
+    program.help();
+    return;
+  }
+  // 有两个或多个参数
+  const configObj = checkConfig(args[0]);
+  if (configObj) {
+    // 配置语言
+    if (args[0] === "language" && !["zh", "en"].includes(args[1])) {
+      spanner.fatal(i18n.eauSet.langErr);
+      spanner.blank();
+      return;
+    }
+    let value = args[1];
+    // 配置模板文件
+    if (args[0] === "templates") {
+      const p = path.resolve(args[1]);
+      const data = fs.readFileSync(p, { encoding: "utf8" });
+      value = JSON.parse(data);
+    }
+    configObj.config[args[0]] = value;
+    rewriteConfigFile(configObj.path, JSON.stringify(configObj.config));
+  } else {
+    spanner.fatal(`${i18n.eauSet.valueErr[0]} ${chalk.yellow(args[0])} ${i18n.eauSet.valueErr[1]}`);
+    spanner.blank();
+  }
+});
+
+/**
+ * 重写配置文件
+ * @param filepath 文件目录路径
+ * @param data 文件重写内容
+ */
+function rewriteConfigFile(filepath, data) {
+  spanner.loading(i18n.eauSet.rewriteLoading);
+  fs.writeFile(filepath, data, (err) => {
+    if (err) {
+      spanner.fatal(i18n.eauSet.rewriteErr);
+      spanner.blank();
+      throw new Error(err);
+    }
+    spanner.success(i18n.eauSet.rewriteSuc);
+    spanner.blank();
+  });
+}
+
+program.parse(process.argv);

@@ -1,0 +1,31 @@
+{
+  "name": "@coderhyh/eau-cli",
+  "version": "0.1.0",
+  "description": "一个可以随意配置下载模板的cli",
+  "type": "commonjs",
+  "bin": {
+    "eau": "bin/eau",
+    "eau get": "bin/eau-get",
+    "eau set": "bin/eau-set",
+    "eau init": "bin/eau-init"
+  },
+  "keywords": [
+    "git",
+    "download",
+    "eau",
+    "cli",
+    "eau-cli"
+  ],
+  "author": "hyh",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.2.0",
+    "commander": "^10.0.0",
+    "download-git-repo": "^3.0.2",
+    "inquirer": "^ 9.1.5",
+    "ora": "^6.2.0"
+  },
+  "directories": {
+    "lib": "lib"
+  }
+}
