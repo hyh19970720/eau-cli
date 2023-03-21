@@ -27,5 +27,13 @@
   },
   "directories": {
     "lib": "lib"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyh19970720/eau-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hyh19970720/eau-cli/issues"
+  },
+  "homepage": "https://github.com/hyh19970720/eau-cli#readme"
 }
